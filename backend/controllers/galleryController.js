@@ -30,8 +30,8 @@ import mongoose from 'mongoose';
  *   - limit: integer (default 12)
  */
 export const getPublicGallery = asyncHandler(async (req, res) => {
+  const categoryParam = req.params.category || req.query.category;
   const {
-    category,
     search,
     tag,
     featured,
@@ -46,9 +46,12 @@ export const getPublicGallery = asyncHandler(async (req, res) => {
     'patientConsent.hasConsent': true,
   };
 
-  // Category filter
-  if (category && category !== 'All') {
-    filter.category = category;
+  // Category filter (support 'All', case-insensitive matching, and URL-decoded param)
+  if (categoryParam && categoryParam.toLowerCase() !== 'all') {
+    const matchedCategory = GALLERY_CATEGORIES.find(
+      (c) => c.toLowerCase() === categoryParam.toLowerCase()
+    );
+    filter.category = matchedCategory || categoryParam;
   }
 
   // Procedure / Tag filter
@@ -112,7 +115,7 @@ export const getPublicGallery = asyncHandler(async (req, res) => {
         hasPrevPage: currentPage > 1,
       },
       filtersApplied: {
-        category: category || 'All',
+        category: categoryParam || 'All',
         search: search || null,
         tag: tag || null,
         sort,
@@ -128,6 +131,15 @@ export const getPublicGallery = asyncHandler(async (req, res) => {
  */
 export const getCaseById = asyncHandler(async (req, res) => {
   const { id } = req.params;
+
+  // If `:id` is actually a category name (e.g. /api/gallery/Dental Implants), delegate to getPublicGallery
+  if (
+    GALLERY_CATEGORIES.some((c) => c.toLowerCase() === id.toLowerCase()) ||
+    id.toLowerCase() === 'all'
+  ) {
+    req.params.category = id;
+    return getPublicGallery(req, res);
+  }
 
   // Support MongoDB ObjectId or anonymized caseId (e.g. CASE-2026-F3A19)
   const isObjectId = mongoose.isValidObjectId(id);

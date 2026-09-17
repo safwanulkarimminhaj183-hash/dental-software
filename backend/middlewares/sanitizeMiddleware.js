@@ -15,9 +15,18 @@ import cors from 'cors';
  * 4. xss-clean    — sanitises HTML entities in request body to prevent XSS
  */
 
+const defaultOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:4173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+];
+
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : ['http://localhost:3000', 'http://localhost:5173'];
+  : defaultOrigins;
 
 export const securityMiddlewares = [
   // ── HTTP security headers ──────────────────────────────────────────────────
@@ -25,16 +34,18 @@ export const securityMiddlewares = [
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+        connectSrc: ["'self'", 'http://localhost:5000', 'http://127.0.0.1:5000', 'ws:', 'wss:'],
+        fontSrc: ["'self'", 'https:', 'data:'],
         objectSrc: ["'none'"],
         frameSrc: ["'none'"],
       },
     },
-    crossOriginEmbedderPolicy: false, // relax for PDF download endpoints
+    // CRITICAL: Allow React frontend to fetch and render WebP dental images from /uploads
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false,
   }),
 
   // ── CORS ───────────────────────────────────────────────────────────────────
@@ -42,11 +53,14 @@ export const securityMiddlewares = [
     origin: (origin, callback) => {
       // Allow requests with no Origin header (same-origin, Postman, mobile apps)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      if (isAllowed) return callback(null, true);
       callback(new Error(`CORS policy: origin ${origin} is not allowed.`));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
   }),
 

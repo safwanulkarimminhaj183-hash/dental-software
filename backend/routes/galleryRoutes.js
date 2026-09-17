@@ -31,6 +31,7 @@ const router = express.Router();
 // POST /api/gallery/:id/like    - Like/upvote a smile transformation
 router.get('/', getPublicGallery);
 router.get('/categories', getGalleryCategories);
+router.get('/category/:category', getPublicGallery);
 router.get('/:id', getCaseById);
 router.post('/:id/like', likeCase);
 
