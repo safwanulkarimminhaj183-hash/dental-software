@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* আপনার দেওয়া কোডটি এখানে থাকবে */
+@media (max-width: 1024px) {
+  /* Appointment Button হাইড করার জন্য */
+  .lg\:block {
+    display: none !important;
+  }
+  /* ৩টি ডট আইকন শো করার জন্য */
+  .lg\:hidden {
+    display: flex !important;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
